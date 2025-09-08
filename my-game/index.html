@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Sparks - Idle Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .zen-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-bottom: 3px solid rgba(0,0,0,0.3);
+        }
+        .zen-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+        }
+        .zen-button:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-bottom-width: 2px;
+        }
+        .zen-button:disabled {
+            background-color: #4a5568; /* gray-700 */
+            cursor: not-allowed;
+            opacity: 0.6;
+            border-bottom-width: 2px;
+        }
+        .particle-text {
+            position: absolute;
+            font-size: 1.1rem;
+            font-weight: bold;
+            pointer-events: none;
+            user-select: none;
+            animation: fadeOutUp 1.2s forwards;
+            text-shadow: 0 0 5px rgba(0,0,0,0.7);
+        }
+        @keyframes fadeOutUp {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-40px) scale(0.8); }
+        }
+        /* Modal Styles */
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        /* Toast Notification */
+        .toast {
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .theme-card {
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .theme-card.selected {
+            border-color: #22d3ee; /* cyan-400 */
+        }
+        .console-font {
+            font-family: 'Fira Code', monospace;
+        }
+    </style>
+</head>
+<body id="gameBody" class="bg-slate-900 text-slate-200 flex flex-col items-center justify-end h-screen w-screen relative">
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="absolute top-0 left-0 w-full h-full z-0"></canvas>
+
+    <!-- Top UI -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+        <button id="setNameBtn" class="zen-button bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg">Set Name</button>
+        <div id="playerNameDisplay" class="text-lg font-semibold text-cyan-300 hidden"></div>
+    </div>
+     <div class="absolute top-4 right-4 z-20">
+        <button id="themesBtn" class="zen-button bg-slate-700 text-white font-bold p-3 rounded-lg">
+           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m12 19-7-6.5A4.5 4.5 0 0 1 8.5 6a4.5 4.5 0 0 1 6.22 1.34L15.5 6a4.5 4.5 0 0 1 6.5 6.5L12 19Z"/><path d="M12 5.5v-3"/></svg>
+        </button>
+    </div>
+    
+    <!-- Leaderboard & Rank -->
+    <div class="absolute top-4 left-4 z-10 w-64 space-y-2">
+        <div id="leaderboard" class="bg-slate-800/70 backdrop-blur-sm p-4 rounded-lg shadow-lg text-center">
+            <h3 class="text-lg font-bold text-cyan-300 mb-3 border-b border-slate-600 pb-2">Top 5 Players</h3>
+            <div id="leaderboardList" class="space-y-3 text-left">
+                 <p class="text-slate-400 text-sm">Loading...</p>
+            </div>
+        </div>
+        <div id="rankPanel" class="bg-slate-800/70 backdrop-blur-sm p-3 rounded-lg shadow-lg text-center">
+            <h4 class="text-md font-bold text-cyan-300">Your Rank</h4>
+            <p id="playerRankDisplay" class="font-semibold text-xl text-white">Unranked</p>
+        </div>
+    </div>
+
+
+    <!-- Stats Board -->
+    <div id="statsBoard" class="absolute top-1/2 right-4 transform -translate-y-1/2 bg-slate-800/70 backdrop-blur-sm p-4 rounded-lg shadow-lg text-center z-10 w-48">
+        <h3 class="text-lg font-bold text-cyan-300 mb-3 border-b border-slate-600 pb-2">Stats</h3>
+        <div class="space-y-2 text-left">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400 text-sm">Sparks:</span>
+                <span id="statsSparkCount" class="font-semibold text-lg text-emerald-400">0</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-400 text-sm">Rebirths:</span>
+                <span id="statsRebirthCount" class="font-semibold text-lg text-purple-400">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Container -->
+    <div class="z-10 w-full flex flex-col items-center">
+        <!-- Upgrade Controls -->
+        <div class="w-full max-w-6xl bg-slate-800/70 backdrop-blur-sm p-4 rounded-t-2xl shadow-lg">
+             <div class="flex justify-around items-center mb-4 px-4">
+                <div>
+                    <h2 class="text-sm text-slate-400">Energy</h2>
+                    <div class="flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><path d="m12 3-1.9 1.9a2.4 2.4 0 0 0 0 3.4L12 10l1.9-1.8a2.4 2.4 0 0 0 0-3.4Z"/><path d="m12 10-1.9 1.9a2.4 2.4 0 0 0 0 3.4L12 17l1.9-1.8a2.4 2.4 0 0 0 0-3.4Z"/><path d="M7 8.5a2.4 2.4 0 0 0 0 3.4L9.2 14"/><path d="m14.8 14 2.2-2.2a2.4 2.4 0 0 0 0-3.4Z"/></svg>
+                        <span id="energyDisplay" class="text-2xl font-semibold text-yellow-400">0</span>
+                    </div>
+                </div>
+                 <div>
+                    <h2 class="text-sm text-slate-400">Ascension Bonus</h2>
+                    <div class="flex items-center justify-center space-x-2">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400"><path d="m4.2 4.2 1.4 1.4"/><path d="M2 12h2"/><path d="m4.2 19.8 1.4-1.4"/><path d="M12 2v2"/><path d="m19.8 19.8-1.4-1.4"/><path d="M22 12h-2"/><path d="m19.8 4.2-1.4 1.4"/><path d="m12 22-2-2 4-4 2 2-4 4z"/><path d="M12.5 7.5 10 10l4 4 2.5-2.5-4-4z"/><path d="M12 22V12l-4 4"/></svg>
+                        <span id="ascensionBonusDisplay" class="text-2xl font-semibold text-purple-400">x1.0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Sparks: <span id="sparkCount">1</span></p>
+                    <button id="buySparkBtn" class="zen-button mt-2 w-full bg-emerald-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Add Spark (<span id="sparkCost">10</span> E)
+                    </button>
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Power: <span id="sparkPowerLevel">1</span></p>
+                    <button id="upgradePowerBtn" class="zen-button mt-2 w-full bg-sky-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Upgrade (<span id="powerUpgradeCost">50</span> E)
+                    </button>
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Speed: <span id="sparkSpeedLevel">1</span></p>
+                    <button id="upgradeSpeedBtn" class="zen-button mt-2 w-full bg-indigo-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Upgrade (<span id="speedUpgradeCost">100</span> E)
+                    </button>
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Crit %: <span id="critChanceLevel">0</span>%</p>
+                    <button id="upgradeCritBtn" class="zen-button mt-2 w-full bg-rose-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Upgrade (<span id="critUpgradeCost">500</span> E)
+                    </button>
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Ascend for <span id="ascendReward">1</span> AP</p>
+                    <button id="ascendBtn" class="zen-button mt-2 w-full bg-purple-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Requires 1M E
+                    </button>
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Help</p>
+                    <button id="instructionsBtn" class="zen-button mt-2 w-full bg-gray-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Instructions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="dashboardModal" class="modal fixed inset-0 bg-black bg-opacity-80 z-[100] p-4 hidden console-font">
+        <div class="w-full h-full bg-slate-900 rounded-lg p-4 flex flex-col relative border border-cyan-500 shadow-2xl">
+            <button id="closeDashboardBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4 text-center">Dev Dashboard</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-slate-800 p-4 rounded-lg text-center">
+                    <h3 class="text-slate-400 text-sm">Total Players</h3>
+                    <p id="totalPlayersStat" class="text-3xl font-bold text-white">0</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg text-center">
+                    <h3 class="text-slate-400 text-sm">Players Online</h3>
+                    <p id="onlinePlayersStat" class="text-3xl font-bold text-emerald-400">0</p>
+                </div>
+            </div>
+            <div class="flex-1 bg-black bg-opacity-50 rounded-lg p-2 overflow-y-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-slate-400 uppercase">
+                        <tr>
+                            <th class="p-2">Name</th>
+                            <th class="p-2 text-right">Energy</th>
+                            <th class="p-2 text-right">Rebirths</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerListBody" class="divide-y divide-slate-700">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="debugConsole" class="modal fixed inset-0 bg-black bg-opacity-60 z-[100] p-4 hidden console-font">
+        <div class="w-full h-full bg-black bg-opacity-70 rounded-lg p-4 flex flex-col relative">
+            <p class="absolute top-4 right-4 text-xs text-slate-400">Press Right Shift to leave</p>
+            <div id="consoleOutput" class="flex-1 overflow-y-auto text-sm mb-2"></div>
+            <form id="consoleForm" class="flex items-center">
+                <span class="text-cyan-400 mr-2">&gt;</span>
+                <input type="text" id="consoleInput" class="flex-1 bg-transparent text-white placeholder-slate-500 focus:outline-none">
+            </form>
+        </div>
+    </div>
+    <div id="themesModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-2xl w-full mx-auto shadow-2xl relative">
+             <button id="closeThemesModal" class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Select a Theme</h2>
+            <div id="themesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+    <div id="nameModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-sm w-full mx-auto shadow-2xl relative">
+             <button id="closeNameModal" class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Choose Your Name</h2>
+            <form id="nameForm">
+                <input type="text" id="nameInput" placeholder="Enter name..." class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required maxlength="15">
+                <p id="nameError" class="text-red-400 text-sm mt-2 h-4"></p>
+                <button type="submit" class="zen-button mt-4 w-full bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg">Save Name</button>
+            </form>
+        </div>
+    </div>
+    <div id="instructionsModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-lg w-full mx-auto shadow-2xl relative">
+            <button id="closeInstructions" class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">How to Play</h2>
+            <div class="space-y-3 text-slate-300">
+                <p><strong class="text-yellow-400">Goal:</strong> Your goal is to generate <strong class="text-yellow-400">Energy</strong> by having your <strong class="text-emerald-400">Sparks</strong> hit the central <strong class="text-purple-400">Heart Crystal</strong>.</p>
+                <p>Set a unique name to appear on the leaderboard!</p>
+                <p><strong class="text-emerald-400">Sparks:</strong> Buy more Sparks to hit the crystal more often. More Sparks = More Energy!</p>
+                <p><strong class="text-sky-400">Power:</strong> Upgrade Power to increase the amount of Energy you get from each hit.</p>
+                <p><strong class="text-indigo-400">Speed:</strong> Upgrade Speed to make your Sparks move faster, resulting in more hits per second.</p>
+                <p><strong class="text-rose-400">Crit %:</strong> Upgrade your Critical Hit chance. Crits give a massive Energy bonus!</p>
+                <p><strong class="text-purple-400">Ascension:</strong> Once you've earned enough Energy, you can Ascend. This resets your progress but grants you a permanent boost to all future Energy gains, allowing you to progress even faster!</p>
+            </div>
+        </div>
+    </div>
+    <div id="offlineModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-8 text-center max-w-sm mx-auto shadow-2xl">
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Welcome Back!</h2>
+            <p class="mb-4">While you were away for <strong id="offlineTime"></strong>, your Sparks generated:</p>
+            <p class="text-3xl font-bold text-yellow-400 mb-6" id="offlineEarnings">0</p>
+            <button id="collectOffline" class="zen-button w-full bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg">Collect</button>
+        </div>
+    </div>
+    <div id="ascendModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-8 text-center max-w-md mx-auto shadow-2xl">
+            <h2 class="text-2xl font-bold text-purple-400 mb-4">Ascend?</h2>
+            <p class="mb-2">Ascending will reset your Sparks, Upgrades, and Energy.</p>
+            <p class="mb-4">In return, you will gain <strong id="ascendModalReward" class="text-purple-400"></strong> Ascension Points (AP), permanently boosting all future Energy gains.</p>
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="confirmAscend" class="zen-button w-1/2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">Confirm</button>
+                <button id="cancelAscend" class="zen-button w-1/2 bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="particleContainer" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-emerald-500 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-5">
+        <p id="toastMessage"></p>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// --- Firebase Configuration ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyChgaqEdI3zhwIQnChhgWURp1--8q-0oFg",
+      authDomain: "zen-sparks-game.firebaseapp.com",
+      projectId: "zen-sparks-game",
+      storageBucket: "zen-sparks-game.firebasestorage.app",
+      messagingSenderId: "977326969317",
+      appId: "1:977326969317:web:e2c9570cb1a6ca60bb9f0c",
+      measurementId: "G-B920Z1B5BM" // This one is optional
+    };
+    // --- End of Firebase Configuration ---
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const particleContainer = document.getElementById('particleContainer');
+
+    let db, auth, userId;
+    let playersCollection;
+    let firebaseInitialized = false;
+
+    const ui = {
+        energyDisplay: document.getElementById('energyDisplay'),
+        sparkCount: document.getElementById('sparkCount'),
+        sparkCost: document.getElementById('sparkCost'),
+        sparkPowerLevel: document.getElementById('sparkPowerLevel'),
+        powerUpgradeCost: document.getElementById('powerUpgradeCost'),
+        sparkSpeedLevel: document.getElementById('sparkSpeedLevel'),
+        speedUpgradeCost: document.getElementById('speedUpgradeCost'),
+        critChanceLevel: document.getElementById('critChanceLevel'),
+        critUpgradeCost: document.getElementById('critUpgradeCost'),
+        ascendBtn: document.getElementById('ascendBtn'),
+        ascendReward: document.getElementById('ascendReward'),
+        ascensionBonusDisplay: document.getElementById('ascensionBonusDisplay'),
+        buySparkBtn: document.getElementById('buySparkBtn'),
+        upgradePowerBtn: document.getElementById('upgradePowerBtn'),
+        upgradeSpeedBtn: document.getElementById('upgradeSpeedBtn'),
+        upgradeCritBtn: document.getElementById('upgradeCritBtn'),
+        statsSparkCount: document.getElementById('statsSparkCount'),
+        statsRebirthCount: document.getElementById('statsRebirthCount'),
+        setNameBtn: document.getElementById('setNameBtn'),
+        playerNameDisplay: document.getElementById('playerNameDisplay'),
+        leaderboardList: document.getElementById('leaderboardList'),
+        playerRankDisplay: document.getElementById('playerRankDisplay'),
+    };
+    
+    const themesModal = { container: document.getElementById('themesModal'), openBtn: document.getElementById('themesBtn'), closeBtn: document.getElementById('closeThemesModal'), grid: document.getElementById('themesGrid') };
+    const instructionsModal = { container: document.getElementById('instructionsModal'), openBtn: document.getElementById('instructionsBtn'), closeBtn: document.getElementById('closeInstructions') };
+    const offlineModal = { container: document.getElementById('offlineModal'), time: document.getElementById('offlineTime'), earnings: document.getElementById('offlineEarnings'), collectBtn: document.getElementById('collectOffline') };
+    const ascendModal = { container: document.getElementById('ascendModal'), reward: document.getElementById('ascendModalReward'), confirmBtn: document.getElementById('confirmAscend'), cancelBtn: document.getElementById('cancelAscend') };
+    const nameModal = { container: document.getElementById('nameModal'), form: document.getElementById('nameForm'), input: document.getElementById('nameInput'), error: document.getElementById('nameError'), closeBtn: document.getElementById('closeNameModal') };
+    const toast = { container: document.getElementById('toast'), message: document.getElementById('toastMessage') };
+    const debugConsole = { container: document.getElementById('debugConsole'), output: document.getElementById('consoleOutput'), form: document.getElementById('consoleForm'), input: document.getElementById('consoleInput') };
+    const dashboardModal = { container: document.getElementById('dashboardModal'), closeBtn: document.getElementById('closeDashboardBtn'), totalPlayers: document.getElementById('totalPlayersStat'), onlinePlayers: document.getElementById('onlinePlayersStat'), playerList: document.getElementById('playerListBody')};
+
+    let gameState;
+    let devMode = false;
+    const ASCEND_REQ_BASE = 1e6;
+
+    const defaultState = {
+        energy: 0,
+        ascensionPoints: 0,
+        lastUpdate: Date.now(),
+        playerName: null,
+        currentTheme: 'default',
+        sparks: [],
+        upgrades: {
+            count: { level: 1, cost: 10, baseCost: 10, costScale: 1.15 },
+            power: { level: 1, cost: 50, baseCost: 50, costScale: 1.25, value: 1 },
+            speed: { level: 1, cost: 100, baseCost: 100, costScale: 1.4, value: 1 },
+            critChance: { level: 0, cost: 500, baseCost: 500, costScale: 2, value: 0, cap: 50 },
+        }
+    };
+
+    const formatNumber = (num) => {
+        if (num < 1e3) return num.toFixed(0);
+        const suffixes = ["", "K", "M", "B", "T", "q", "Q", "s", "S"];
+        const i = Math.floor(Math.log10(num) / 3);
+        return (num / Math.pow(10, i * 3)).toFixed(2) + suffixes[i];
+    };
+    const random = (min, max) => Math.random() * (max - min) + min;
+    
+    function showToast(message, isError = false) {
+        toast.message.textContent = message;
+        toast.container.className = `toast fixed bottom-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-5 ${isError ? 'bg-red-500' : 'bg-emerald-500'}`;
+        toast.container.classList.remove('opacity-0', 'translate-y-5');
+        setTimeout(() => {
+            toast.container.classList.add('opacity-0', 'translate-y-5');
+        }, 3000);
+    }
+
+    async function initFirebase() {
+        if (firebaseConfig.apiKey.startsWith("PASTE_YOUR")) {
+            console.warn("Firebase config is using placeholder values. Leaderboard will be disabled.");
+            ui.leaderboardList.innerHTML = `<p class="text-yellow-400 text-sm">Leaderboard not configured by owner.</p>`;
+            return;
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            playersCollection = collection(db, `players`);
+            firebaseInitialized = true;
+
+            await signInAnonymously(auth);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    await loadPlayerName();
+                    listenToLeaderboard();
+                    updatePlayerRank();
+                }
+            });
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            ui.leaderboardList.innerHTML = `<p class="text-red-400 text-sm">Leaderboard error.</p>`;
+        }
+    }
+    
+    async function loadPlayerName() {
+        if (!userId || !firebaseInitialized) return;
+        const playerDoc = await getDoc(doc(playersCollection, userId));
+        if (playerDoc.exists() && playerDoc.data().name) {
+            gameState.playerName = playerDoc.data().name;
+            updatePlayerNameUI();
+        }
+    }
+
+    function listenToLeaderboard() {
+        if (!firebaseInitialized) return;
+        const q = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"), limit(5));
+        onSnapshot(q, (snapshot) => {
+            ui.leaderboardList.innerHTML = '';
+            if (snapshot.empty) {
+                ui.leaderboardList.innerHTML = `<p class="text-slate-400 text-sm">No players yet. Be the first!</p>`;
+                return;
+            }
+            let rank = 1;
+            snapshot.forEach((doc) => {
+                const player = doc.data();
+                const entry = document.createElement('div');
+                entry.className = 'flex justify-between items-center text-sm';
+                entry.innerHTML = `
+                    <div class="flex-1 truncate">
+                        <span class="text-slate-500 mr-2">${rank}.</span>
+                        <span>${player.name}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-yellow-400">${formatNumber(player.energy)} Energy</div>
+                        <div class="text-xs font-medium text-purple-400">${player.ascensionPoints} Rebirths</div>
+                    </div>
+                `;
+                ui.leaderboardList.appendChild(entry);
+                rank++;
+            });
+        }, (error) => {
+            console.error("Leaderboard listener error:", error);
+            ui.leaderboardList.innerHTML = `<p class="text-red-400 text-sm">Error loading leaderboard.</p>`;
+        });
+    }
+
+    async function updatePlayerScore() {
+        if (!userId || !gameState.playerName || !firebaseInitialized) return;
+        try {
+            await setDoc(doc(playersCollection, userId), {
+                name: gameState.playerName,
+                ascensionPoints: gameState.ascensionPoints,
+                energy: gameState.energy,
+                lastUpdate: serverTimestamp()
+            }, { merge: true });
+        } catch (error) {
+            console.error("Failed to update player score:", error);
+        }
+    }
+
+    async function updatePlayerRank() {
+        if (!userId || !gameState.playerName || !firebaseInitialized) return;
+        try {
+            const q = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"));
+            const snapshot = await getDocs(q);
+            const rank = snapshot.docs.findIndex(doc => doc.id === userId);
+            if (rank !== -1) {
+                ui.playerRankDisplay.textContent = `#${rank + 1}`;
+            } else {
+                ui.playerRankDisplay.textContent = 'Unranked';
+            }
+        } catch(e) {
+            console.error("Could not fetch rank", e);
+            ui.playerRankDisplay.textContent = 'N/A';
+        }
+    }
+    
+    const drawDefaultCrystal = (crystal) => {
+        ctx.fillStyle = crystal.color;
+        ctx.shadowColor = crystal.color;
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        const points = 12;
+        for (let i = 0; i < points; i++) {
+            const angle = i * 2 * Math.PI / points;
+            const r = i % 2 === 0 ? crystal.radius : crystal.radius * 0.8;
+            ctx.lineTo(r * Math.sin(angle), -r * Math.cos(angle));
+        }
+        ctx.closePath();
+        ctx.fill();
+    };
+
+    const drawPumpkinCrystal = (crystal) => {
+        ctx.fillStyle = '#f97316';
+        ctx.shadowColor = '#f97316';
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, crystal.radius, crystal.radius * 0.85, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#166534';
+        ctx.beginPath();
+        ctx.rect(-crystal.radius * 0.1, -crystal.radius, crystal.radius * 0.2, crystal.radius * 0.2);
+        ctx.fill();
+    };
+
+    const drawSnowflakeCrystal = (crystal) => {
+        ctx.strokeStyle = '#67e8f9';
+        ctx.shadowColor = '#67e8f9';
+        ctx.shadowBlur = 20;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = i * Math.PI / 3;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle) * crystal.radius, Math.sin(angle) * crystal.radius);
+        }
+        ctx.stroke();
+    };
+
+    class Spark {
+        constructor(x, y) {
+            this.x = x; this.y = y; this.radius = 6;
+            const angle = random(0, Math.PI * 2);
+            this.vx = Math.cos(angle);
+            this.vy = Math.sin(angle);
+            this.color = `hsl(${random(100, 160)}, 80%, 60%)`;
+            this.trail = [];
+        }
+
+        draw() {
+            ctx.beginPath();
+            if (this.trail.length > 0) {
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                for (let i = 1; i < this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                ctx.strokeStyle = this.color.replace('60%)', '30%)');
+                ctx.lineWidth = this.radius * 0.5;
+                ctx.stroke();
+            }
+            const angle = Math.atan2(this.vy, this.vx);
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(this.radius, 0);
+            ctx.lineTo(-this.radius / 2, this.radius / 2);
+            ctx.lineTo(-this.radius / 2, -this.radius / 2);
+            ctx.closePath();
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.restore();
+            ctx.shadowBlur = 0;
+        }
+
+        update() {
+            this.trail.push({ x: this.x, y: this.y });
+            if (this.trail.length > 15) this.trail.shift();
+            
+            const targetDx = heartCrystal.x - this.x;
+            const targetDy = heartCrystal.y - this.y;
+            const targetDist = Math.sqrt(targetDx * targetDx + targetDy * targetDy);
+
+            if (targetDist > heartCrystal.radius) {
+                const targetDirX = targetDx / targetDist;
+                const targetDirY = targetDy / targetDist;
+                const currentDist = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const currentDirX = currentDist > 0 ? this.vx / currentDist : 0;
+                const currentDirY = currentDist > 0 ? this.vy / currentDist : 0;
+                const turnFactor = 0.03; 
+                const newDirX = currentDirX + (targetDirX - currentDirX) * turnFactor;
+                const newDirY = currentDirY + (targetDirY - currentDirY) * turnFactor;
+                const newDist = Math.sqrt(newDirX * newDirX + newDirY * newDirY);
+                this.vx = (newDirX / newDist) * gameState.upgrades.speed.value;
+                this.vy = (newDirY / newDist) * gameState.upgrades.speed.value;
+            } else {
+                const speed = gameState.upgrades.speed.value;
+                const currentSpeed = Math.sqrt(this.vx**2 + this.vy**2);
+                if (currentSpeed > 0) {
+                    this.vx = (this.vx / currentSpeed) * speed;
+                    this.vy = (this.vy / currentSpeed) * speed;
+                }
+            }
+            
+            this.x += this.vx; 
+            this.y += this.vy;
+
+            if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                this.vx *= -1;
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+            }
+            if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+                this.vy *= -1;
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+        }
+    }
+
+    class HeartCrystal {
+        constructor() {
+            this.x = canvas.width / 2;
+            this.y = canvas.height / 2;
+            this.radius = Math.min(canvas.width, canvas.height) / 6;
+            this.color = `hsl(300, 80%, 70%)`;
+            this.scale = 1;
+            this.hitCooldown = 0;
+            this.drawFunc = drawDefaultCrystal;
+        }
+
+        draw() {
+            if (this.hitCooldown > 0) this.hitCooldown--;
+            this.scale = 1 + (this.hitCooldown / 20) * 0.1;
+            
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.scale(this.scale, this.scale);
+            this.drawFunc(this);
+            ctx.restore();
+        }
+
+        handleHit() {
+            this.hitCooldown = 20;
+            let energyGained = gameState.upgrades.power.value;
+            const isCrit = Math.random() * 100 < gameState.upgrades.critChance.value;
+            
+            if (isCrit) {
+                energyGained *= 5;
+                createFloatingText(`+${formatNumber(energyGained)}!!`, this.x + random(-50, 50), this.y + random(-50, 50), true);
+            } else {
+                 createFloatingText(`+${formatNumber(energyGained)}`, this.x + random(-50, 50), this.y + random(-50, 50), false);
+            }
+
+            const ascensionBonus = 1 + gameState.ascensionPoints * 0.1;
+            gameState.energy += energyGained * ascensionBonus;
+        }
+    }
+    let heartCrystal;
+
+    async function init() {
+        loadGame();
+        await initFirebase();
+        
+        resizeCanvas();
+        heartCrystal = new HeartCrystal();
+        applyTheme(gameState.currentTheme);
+        
+        while(gameState.sparks.length < gameState.upgrades.count.level) {
+            gameState.sparks.push(new Spark(random(0, canvas.width), random(0, canvas.height)));
+        }
+        
+        handleOfflineProgress();
+        
+        updateUI();
+        gameLoop();
+        setInterval(saveGame, 5000);
+        setInterval(updatePlayerRank, 30000);
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    function update() {
+        gameState.sparks.forEach(spark => {
+            spark.update();
+            const dx = spark.x - heartCrystal.x;
+            const dy = spark.y - heartCrystal.y;
+            if (Math.sqrt(dx * dx + dy * dy) < spark.radius + heartCrystal.radius * heartCrystal.scale) {
+                heartCrystal.handleHit();
+                const angle = Math.atan2(dy, dx);
+                spark.vx = Math.cos(angle) * gameState.upgrades.speed.value;
+                spark.vy = Math.sin(angle) * gameState.upgrades.speed.value;
+            }
+        });
+        updateUI();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        heartCrystal.draw();
+        gameState.sparks.forEach(spark => spark.draw());
+    }
+    
+    function updatePlayerNameUI() {
+        if (gameState.playerName) {
+            ui.playerNameDisplay.textContent = gameState.playerName;
+            ui.playerNameDisplay.classList.remove('hidden');
+            ui.setNameBtn.textContent = "Change Name";
+        }
+    }
+
+    function updateUI() {
+        ui.energyDisplay.textContent = formatNumber(gameState.energy);
+        const ascensionBonus = 1 + gameState.ascensionPoints * 0.1;
+        ui.ascensionBonusDisplay.textContent = `x${ascensionBonus.toFixed(1)}`;
+        ui.statsSparkCount.textContent = gameState.upgrades.count.level;
+        ui.statsRebirthCount.textContent = gameState.ascensionPoints;
+
+        const upgrades = ['count', 'power', 'speed', 'critChance'];
+        const elements = {
+            count: { count: ui.sparkCount, cost: ui.sparkCost },
+            power: { level: ui.sparkPowerLevel, cost: ui.powerUpgradeCost },
+            speed: { level: ui.sparkSpeedLevel, cost: ui.speedUpgradeCost },
+            critChance: { level: ui.critChanceLevel, cost: ui.critUpgradeCost }
+        };
+        const buttons = { count: ui.buySparkBtn, power: ui.upgradePowerBtn, speed: ui.upgradeSpeedBtn, critChance: ui.upgradeCritBtn };
+
+        upgrades.forEach(key => {
+            const upg = gameState.upgrades[key];
+            if(elements[key].count) elements[key].count.textContent = upg.level;
+            if(elements[key].level) {
+                 if(key === 'critChance') elements[key].level.textContent = `${upg.value.toFixed(1)}%`;
+                 else elements[key].level.textContent = upg.level;
+            }
+            elements[key].cost.textContent = formatNumber(upg.cost);
+            buttons[key].disabled = gameState.energy < upg.cost || (upg.cap && upg.level >= upg.cap);
+        });
+
+        const ascendReq = ASCEND_REQ_BASE * Math.pow(100, gameState.ascensionPoints);
+        const canAscend = gameState.energy >= ascendReq && gameState.playerName;
+        const reward = 1 + Math.floor(gameState.ascensionPoints / 5);
+        ui.ascendReward.textContent = `${reward} AP`;
+        ui.ascendBtn.textContent = !firebaseInitialized ? "Leaderboard Offline" : gameState.playerName ? (canAscend ? 'Ascend!' : `Requires ${formatNumber(ascendReq)} E`) : 'Set Name First';
+        ui.ascendBtn.disabled = !canAscend || !firebaseInitialized;
+    }
+
+    function buyUpgrade(key) {
+        const upg = gameState.upgrades[key];
+        if (gameState.energy >= upg.cost && (!upg.cap || upg.level < upg.cap)) {
+            gameState.energy -= upg.cost;
+            upg.level++;
+            upg.cost = Math.floor(upg.baseCost * Math.pow(upg.costScale, upg.level -1));
+            
+            if (key === 'power') upg.value = Math.floor(1 * Math.pow(1.2, upg.level - 1));
+            if (key === 'speed') upg.value = 1 + (upg.level - 1) * 0.2;
+            if (key === 'critChance') upg.value = Math.min(upg.cap, upg.level * 0.5);
+            if (key === 'count') gameState.sparks.push(new Spark(random(0, canvas.width), random(0, canvas.height)));
+        }
+        updateUI();
+    }
+    
+    ui.buySparkBtn.addEventListener('click', () => buyUpgrade('count'));
+    ui.upgradePowerBtn.addEventListener('click', () => buyUpgrade('power'));
+    ui.upgradeSpeedBtn.addEventListener('click', () => buyUpgrade('speed'));
+    ui.upgradeCritBtn.addEventListener('click', () => buyUpgrade('critChance'));
+    
+    instructionsModal.openBtn.addEventListener('click', () => { instructionsModal.container.classList.remove('hidden'); });
+    instructionsModal.closeBtn.addEventListener('click', () => { instructionsModal.container.classList.add('hidden'); });
+    
+    ui.setNameBtn.addEventListener('click', () => { 
+        if (!firebaseInitialized) {
+            showToast("Leaderboard is not configured by the game owner.", true);
+            return;
+        }
+        nameModal.container.classList.remove('hidden'); 
+    });
+    nameModal.closeBtn.addEventListener('click', () => { nameModal.container.classList.add('hidden'); });
+
+    nameModal.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newName = nameModal.input.value.trim();
+        if (!newName || newName.length < 3) {
+            nameModal.error.textContent = "Name must be at least 3 characters.";
+            return;
+        }
+        nameModal.error.textContent = "";
+
+        const q = query(playersCollection, where("name", "==", newName));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            nameModal.error.textContent = "This name is already taken.";
+        } else {
+            gameState.playerName = newName;
+            await updatePlayerScore();
+            updatePlayerNameUI();
+            nameModal.container.classList.add('hidden');
+            showToast("Name saved successfully!");
+            updateUI();
+        }
+    });
+
+    ui.ascendBtn.addEventListener('click', () => {
+        const reward = 1 + Math.floor(gameState.ascensionPoints / 5);
+        ascendModal.reward.textContent = `${reward}`;
+        ascendModal.container.classList.remove('hidden');
+    });
+
+    ascendModal.cancelBtn.addEventListener('click', () => { ascendModal.container.classList.add('hidden'); });
+    ascendModal.confirmBtn.addEventListener('click', async () => {
+        const reward = 1 + Math.floor(gameState.ascensionPoints / 5);
+        const currentName = gameState.playerName;
+        const newState = JSON.parse(JSON.stringify(defaultState)); 
+        newState.playerName = currentName;
+        newState.ascensionPoints = gameState.ascensionPoints + reward;
+        newState.lastUpdate = Date.now();
+        gameState = newState;
+        
+        gameState.sparks = [];
+        while(gameState.sparks.length < gameState.upgrades.count.level) {
+            gameState.sparks.push(new Spark(random(0, canvas.width), random(0, canvas.height)));
+        }
+
+        await updatePlayerScore();
+
+        ascendModal.container.classList.add('hidden');
+        saveGame();
+        updateUI();
+    });
+
+    function createFloatingText(text, x, y, isCrit) {
+        const p = document.createElement('div');
+        p.className = 'particle-text';
+        p.textContent = text;
+        p.style.left = `${x}px`; p.style.top = `${y}px`;
+        p.style.color = isCrit ? '#f43f5e' : '#facc15';
+        p.style.fontSize = isCrit ? '1.5rem' : '1.1rem';
+        particleContainer.appendChild(p);
+        setTimeout(() => p.remove(), 1200);
+    }
+    
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        if(heartCrystal) {
+            heartCrystal.x = canvas.width / 2;
+            heartCrystal.y = canvas.height / 2;
+            heartCrystal.radius = Math.min(canvas.width, canvas.height) / 6;
+        }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function saveGame() {
+        gameState.lastUpdate = Date.now();
+        localStorage.setItem('zenSparksSave', JSON.stringify(gameState));
+        if (firebaseInitialized) {
+            updatePlayerScore();
+        }
+    }
+
+    function loadGame() {
+        const savedGame = localStorage.getItem('zenSparksSave');
+        if (savedGame) {
+            const loadedState = JSON.parse(savedGame);
+            gameState = {...defaultState, ...loadedState, upgrades: {...defaultState.upgrades, ...loadedState.upgrades}}; 
+            gameState.sparks = [];
+        } else {
+            gameState = JSON.parse(JSON.stringify(defaultState));
+        }
+    }
+
+    function handleOfflineProgress() {
+        const now = Date.now();
+        const timeDiff = (now - gameState.lastUpdate) / 1000;
+        
+        if (timeDiff > 60) {
+            const critContribution = (gameState.upgrades.critChance.value / 100) * (5 - 1);
+            const avgEnergyPerHit = gameState.upgrades.power.value * (1 + critContribution);
+            const energyPerSecond = (gameState.upgrades.count.level * gameState.upgrades.speed.value * avgEnergyPerHit * 0.5) * (1 + gameState.ascensionPoints * 0.1);
+            const earned = Math.floor(energyPerSecond * timeDiff);
+            
+            if (earned > 0) {
+                 gameState.energy += earned;
+                const minutes = Math.floor(timeDiff / 60);
+                const hours = Math.floor(minutes / 60);
+                offlineModal.time.textContent = `${hours}h ${minutes % 60}m`;
+                offlineModal.earnings.textContent = `+${formatNumber(earned)} Energy`;
+                offlineModal.container.classList.remove('hidden');
+            }
+        }
+        
+        gameState.lastUpdate = now;
+    }
+    
+    offlineModal.collectBtn.addEventListener('click', () => {
+        offlineModal.container.classList.add('hidden');
+        updateUI();
+    });
+
+    const themes = {
+        default: {
+            name: "Default",
+            preview: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNjAiPgo8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMDYxMjJiIj48L3JlY3Q+CjxwYXRoIGZpbGw9IiNkOTQ2YmYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDMwKSBzY2FsZSgyKSIgZD0iTSAxMiwyIEwgNCw4IEwgLTUsOCBMIC04LDAgTCAtNSwtOCBMIDQsLTggTCAxMiwtMiBaIj48L3BhdGg+Cjwvc3ZnPg==",
+            background: "bg-slate-900",
+            drawFunc: drawDefaultCrystal,
+        },
+        halloween: {
+            name: "Spooky Halloween",
+            preview: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNjAiPgo8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMjYwYzJlIj48L3JlY3Q+CjxwYXRoIGZpbGw9IiNmOTczMTYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDMyKSBzY2FsZSgyLjUpIiBkPSJNOSwwIEMgOSw1IDUsOSA1LDkgQyA1LDkgLTUsOSAtNSw5IEMgLTUsOSAtOSw1IC05LDAgQyAtOSwtNSAtNSwtOSAwLC05IEMgNSwtOSA5LC01IDksMCBaIj48L3BhdGg+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMjIiIHI9IjIiIGZpbGw9IiMxNjY1MzQiPjwvY2lyY2xlPgo8L3N2Zz4=",
+            background: "from-[#260c2e] to-[#0f172a]",
+            drawFunc: drawPumpkinCrystal,
+        },
+        christmas: {
+            name: "Winter Holiday",
+            preview: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNjAiPgo8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMGUyOTVjIj48L3JlY3Q+CjxwYXRoIHN0cm9rZT0iIzY3ZThmOSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDMwKSBzY2FsZSgyKSIgZD0iTSAtMTIsMCBMIDEyLDAgTSA2LDExIEwgLTYsLTExIE0gLTYsMTEgTCA2LC0xMSI+PC9wYXRoPgo8L3N2Zz4=",
+            background: "from-[#0e295c] to-[#a3daff]",
+            drawFunc: drawSnowflakeCrystal
+        }
+    };
+
+    function applyTheme(themeId) {
+        const theme = themes[themeId] || themes.default;
+        gameState.currentTheme = themeId;
+        
+        const body = document.getElementById('gameBody');
+        body.className = `text-slate-200 flex flex-col items-center justify-end h-screen w-screen relative bg-gradient-to-b ${theme.background}`;
+        
+        heartCrystal.drawFunc = theme.drawFunc;
+
+        document.querySelectorAll('.theme-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.themeId === themeId);
+        });
+    }
+
+    function populateThemesModal() {
+        themesModal.grid.innerHTML = '';
+        Object.entries(themes).forEach(([id, theme]) => {
+            const card = document.createElement('div');
+            card.className = 'theme-card bg-slate-900 rounded-lg p-3 cursor-pointer';
+            card.dataset.themeId = id;
+            card.innerHTML = `
+                <img src="${theme.preview}" class="w-full h-24 object-cover rounded-md mb-2">
+                <p class="text-center font-semibold">${theme.name}</p>
+            `;
+            card.addEventListener('click', () => {
+                applyTheme(id);
+                saveGame();
+                showToast(`${theme.name} theme applied!`);
+                themesModal.container.classList.add('hidden');
+            });
+            themesModal.grid.appendChild(card);
+        });
+    }
+    themesModal.openBtn.addEventListener('click', () => {
+        populateThemesModal();
+        applyTheme(gameState.currentTheme);
+        themesModal.container.classList.remove('hidden');
+    });
+    themesModal.closeBtn.addEventListener('click', () => { themesModal.container.classList.add('hidden'); });
+
+    // --- Debug Console ---
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'ShiftRight') {
+            e.preventDefault();
+            debugConsole.container.classList.toggle('hidden');
+            if (!debugConsole.container.classList.contains('hidden')) {
+                debugConsole.input.focus();
+            }
+        }
+    });
+
+    debugConsole.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const command = debugConsole.input.value.trim();
+        handleCommand(command);
+        debugConsole.input.value = '';
+    });
+
+    function logToConsole(message, isError = false) {
+        const p = document.createElement('p');
+        p.textContent = message;
+        p.className = isError ? 'text-red-400' : 'text-slate-300';
+        debugConsole.output.appendChild(p);
+        debugConsole.output.scrollTop = debugConsole.output.scrollHeight;
+    }
+
+    function handleCommand(command) {
+        logToConsole(`> ${command}`);
+        const [cmd, ...args] = command.toLowerCase().split(' ');
+
+        switch(cmd) {
+            case 'help':
+                logToConsole("Available Commands:");
+                logToConsole("- help: Shows this list");
+                logToConsole("- clear: Clears the console");
+                logToConsole("- devmode [code]: Enables developer commands");
+                if (devMode) {
+                    logToConsole("- energy [amount]: Sets energy (e.g., 10k, 2.5m, 1b)");
+                    logToConsole("- ap [amount]: Sets ascension points");
+                    logToConsole("- dashboard: Opens the dev dashboard");
+                }
+                break;
+            case 'clear':
+                debugConsole.output.innerHTML = '';
+                break;
+            case 'devmode':
+                if (args[0] === 'asaisfat') {
+                    devMode = true;
+                    logToConsole("Dev mode enabled for this session.");
+                } else if (args[0] === 'off') {
+                    devMode = false;
+                    logToConsole("Dev mode disabled.");
+                }
+                else {
+                    logToConsole("Invalid devmode command.", true);
+                }
+                break;
+            case 'energy':
+                if (!devMode) {
+                    logToConsole("Error: Dev mode not enabled.", true);
+                    break;
+                }
+                const amountStr = args[0];
+                if (!amountStr) {
+                    logToConsole("Usage: energy [amount]", true);
+                    break;
+                }
+                let multiplier = 1;
+                let num = parseFloat(amountStr);
+                if (amountStr.endsWith('k')) multiplier = 1e3;
+                if (amountStr.endsWith('m')) multiplier = 1e6;
+                if (amountStr.endsWith('b')) multiplier = 1e9;
+                
+                gameState.energy = num * multiplier;
+                logToConsole(`Energy set to ${formatNumber(gameState.energy)}`);
+                updateUI();
+                break;
+            case 'ap':
+                 if (!devMode) {
+                    logToConsole("Error: Dev mode not enabled.", true);
+                    break;
+                }
+                const apAmount = parseInt(args[0]);
+                if (isNaN(apAmount)) {
+                     logToConsole("Usage: ap [number]", true);
+                     break;
+                }
+                gameState.ascensionPoints = apAmount;
+                logToConsole(`Ascension points set to ${apAmount}`);
+                updateUI();
+                break;
+            case 'dashboard':
+                if (!devMode) {
+                    logToConsole("Error: Dev mode not enabled.", true);
+                    break;
+                }
+                openDashboard();
+                break;
+            default:
+                logToConsole(`Unknown command: ${cmd}`, true);
+        }
+    }
+
+    async function openDashboard() {
+        if (!firebaseInitialized) {
+            logToConsole("Cannot open dashboard: Firebase not initialized.", true);
+            return;
+        }
+        dashboardModal.container.classList.remove('hidden');
+        
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const allPlayersQuery = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"));
+        const onlinePlayersQuery = query(playersCollection, where("lastUpdate", ">", fiveMinutesAgo));
+
+        try {
+            const allPlayersSnapshot = await getDocs(allPlayersQuery);
+            const onlinePlayersSnapshot = await getDocs(onlinePlayersQuery);
+
+            dashboardModal.totalPlayers.textContent = allPlayersSnapshot.size;
+            dashboardModal.onlinePlayers.textContent = onlinePlayersSnapshot.size;
+
+            dashboardModal.playerList.innerHTML = '';
+            allPlayersSnapshot.forEach(doc => {
+                const player = doc.data();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2">${player.name}</td>
+                    <td class="p-2 text-right">${formatNumber(player.energy)}</td>
+                    <td class="p-2 text-right">${player.ascensionPoints}</td>
+                `;
+                dashboardModal.playerList.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error("Error fetching dashboard data:", e);
+        }
+    }
+    dashboardModal.closeBtn.addEventListener('click', () => dashboardModal.container.classList.add('hidden'));
+
+
+    init();
+</script>
+</body>
+</html>
+
