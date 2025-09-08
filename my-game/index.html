@@ -163,7 +163,7 @@
                         Requires 1M E
                     </button>
                 </div>
-                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
                     <p class="text-sm font-medium text-center">Gift Energy</p>
                     <button id="giftPlayerBtn" class="zen-button mt-2 w-full bg-teal-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
                         Gift Player
@@ -195,7 +195,11 @@
                     <label for="giftAmount" class="block text-sm font-medium text-slate-300 mb-1">Amount</label>
                     <input type="text" id="giftAmount" placeholder="e.g., 10k, 2.5m, 1b" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
                 </div>
-                <p id="giftError" class="text-red-400 text-sm h-4"></p>
+                <div class="flex items-center mt-2">
+                    <input id="anonymousCheckbox" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500">
+                    <label for="anonymousCheckbox" class="ml-2 block text-sm text-slate-300">Send Anonymously</label>
+                </div>
+                <p id="giftError" class="text-red-400 text-sm h-4 mt-2"></p>
                 <button type="submit" class="zen-button mt-4 w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">Send Gift</button>
             </form>
         </div>
@@ -361,7 +365,7 @@
     const nameModal = { container: document.getElementById('nameModal'), form: document.getElementById('nameForm'), input: document.getElementById('nameInput'), error: document.getElementById('nameError'), closeBtn: document.getElementById('closeNameModal') };
     const toast = { container: document.getElementById('toast'), message: document.getElementById('toastMessage') };
     const debugConsole = { container: document.getElementById('debugConsole'), output: document.getElementById('consoleOutput'), form: document.getElementById('consoleForm'), input: document.getElementById('consoleInput') };
-    const giftModal = { container: document.getElementById('giftModal'), openBtn: document.getElementById('giftPlayerBtn'), closeBtn: document.getElementById('closeGiftModal'), form: document.getElementById('giftForm'), recipientInput: document.getElementById('recipientName'), amountInput: document.getElementById('giftAmount'), error: document.getElementById('giftError') };
+    const giftModal = { container: document.getElementById('giftModal'), openBtn: document.getElementById('giftPlayerBtn'), closeBtn: document.getElementById('closeGiftModal'), form: document.getElementById('giftForm'), recipientInput: document.getElementById('recipientName'), amountInput: document.getElementById('giftAmount'), error: document.getElementById('giftError'), anonCheckbox: document.getElementById('anonymousCheckbox') };
     const dashboardModal = { container: document.getElementById('dashboardModal'), closeBtn: document.getElementById('closeDashboardBtn'), totalPlayers: document.getElementById('totalPlayersStat'), onlinePlayers: document.getElementById('onlinePlayersStat'), playerList: document.getElementById('playerListBody')};
 
     let gameState;
@@ -1117,7 +1121,7 @@
         }
     }
     dashboardModal.closeBtn.addEventListener('click', () => dashboardModal.container.classList.add('hidden'));
-
+    
     giftModal.openBtn.addEventListener('click', () => {
         if (!firebaseInitialized || !gameState.playerName) {
             showToast("You must set your name first to gift.", true);
@@ -1174,10 +1178,8 @@
         }
     });
 
-
     init();
 </script>
 </body>
 </html>
-
 
