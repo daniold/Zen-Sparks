@@ -132,7 +132,7 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
                     <p class="text-sm font-medium text-center">Sparks: <span id="sparkCount">1</span></p>
                     <button id="buySparkBtn" class="zen-button mt-2 w-full bg-emerald-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
@@ -163,6 +163,12 @@
                         Requires 1M E
                     </button>
                 </div>
+                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
+                    <p class="text-sm font-medium text-center">Gift Energy</p>
+                    <button id="giftPlayerBtn" class="zen-button mt-2 w-full bg-teal-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
+                        Gift Player
+                    </button>
+                </div>
                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
                     <p class="text-sm font-medium text-center">Help</p>
                     <button id="instructionsBtn" class="zen-button mt-2 w-full bg-gray-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
@@ -174,6 +180,26 @@
     </div>
     
     <!-- Modals -->
+    <div id="giftModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-sm w-full mx-auto shadow-2xl relative">
+             <button id="closeGiftModal" class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Gift Energy</h2>
+            <form id="giftForm">
+                <div class="mb-4">
+                    <label for="recipientName" class="block text-sm font-medium text-slate-300 mb-1">Recipient's Name</label>
+                    <input type="text" id="recipientName" placeholder="Enter exact username..." class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                </div>
+                 <div class="mb-2">
+                    <label for="giftAmount" class="block text-sm font-medium text-slate-300 mb-1">Amount</label>
+                    <input type="text" id="giftAmount" placeholder="e.g., 10k, 2.5m, 1b" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                </div>
+                <p id="giftError" class="text-red-400 text-sm h-4"></p>
+                <button type="submit" class="zen-button mt-4 w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">Send Gift</button>
+            </form>
+        </div>
+    </div>
     <div id="dashboardModal" class="modal fixed inset-0 bg-black bg-opacity-80 z-[100] p-4 hidden console-font">
         <div class="w-full h-full bg-slate-900 rounded-lg p-4 flex flex-col relative border border-cyan-500 shadow-2xl">
             <button id="closeDashboardBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
@@ -281,17 +307,17 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- Firebase Configuration ---
+    // --- Firebase Configuration ---
     const firebaseConfig = {
-      apiKey: "AIzaSyBB7dvT3fGnDM22NxteD-rkPfK-eyU29bM",
-      authDomain: "zen-sparks.firebaseapp.com",
-      projectId: "zen-sparks",
-      storageBucket: "zen-sparks.firebasestorage.app",
-      messagingSenderId: "1008077440195",
-      appId: "1:1008077440195:web:2d213de0b84f56a3760e76",
-      measurementId: "G-839Q4008SS" // This one is optional
+      apiKey: "PASTE_YOUR_API_KEY_HERE",
+      authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+      projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+      storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+      messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
+      appId: "PASTE_YOUR_APP_ID_HERE",
+      measurementId: "PASTE_YOUR_MEASUREMENT_ID_HERE" // This one is optional
     };
     // --- End of Firebase Configuration ---
 
@@ -335,6 +361,7 @@
     const nameModal = { container: document.getElementById('nameModal'), form: document.getElementById('nameForm'), input: document.getElementById('nameInput'), error: document.getElementById('nameError'), closeBtn: document.getElementById('closeNameModal') };
     const toast = { container: document.getElementById('toast'), message: document.getElementById('toastMessage') };
     const debugConsole = { container: document.getElementById('debugConsole'), output: document.getElementById('consoleOutput'), form: document.getElementById('consoleForm'), input: document.getElementById('consoleInput') };
+    const giftModal = { container: document.getElementById('giftModal'), openBtn: document.getElementById('giftPlayerBtn'), closeBtn: document.getElementById('closeGiftModal'), form: document.getElementById('giftForm'), recipientInput: document.getElementById('recipientName'), amountInput: document.getElementById('giftAmount'), error: document.getElementById('giftError') };
     const dashboardModal = { container: document.getElementById('dashboardModal'), closeBtn: document.getElementById('closeDashboardBtn'), totalPlayers: document.getElementById('totalPlayersStat'), onlinePlayers: document.getElementById('onlinePlayersStat'), playerList: document.getElementById('playerListBody')};
 
     let gameState;
@@ -362,6 +389,16 @@
         const i = Math.floor(Math.log10(num) / 3);
         return (num / Math.pow(10, i * 3)).toFixed(2) + suffixes[i];
     };
+
+    const parseFormattedNumber = (str) => {
+        const suffixes = { k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15, Q: 1e18, s: 1e21, S: 1e24 };
+        const lastChar = str.slice(-1).toLowerCase();
+        if (suffixes[lastChar]) {
+            return parseFloat(str.slice(0, -1)) * suffixes[lastChar];
+        }
+        return parseFloat(str);
+    };
+    
     const random = (min, max) => Math.random() * (max - min) + min;
     
     function showToast(message, isError = false) {
@@ -1086,5 +1123,4 @@
 </script>
 </body>
 </html>
-
 
