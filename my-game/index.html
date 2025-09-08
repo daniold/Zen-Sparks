@@ -309,7 +309,7 @@
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // --- Firebase Configuration ---
+// --- Firebase Configuration ---
     const firebaseConfig = {
       apiKey: "AIzaSyBB7dvT3fGnDM22NxteD-rkPfK-eyU29bM",
       authDomain: "zen-sparks.firebaseapp.com",
@@ -1117,6 +1117,62 @@
         }
     }
     dashboardModal.closeBtn.addEventListener('click', () => dashboardModal.container.classList.add('hidden'));
+
+    giftModal.openBtn.addEventListener('click', () => {
+        if (!firebaseInitialized || !gameState.playerName) {
+            showToast("You must set your name first to gift.", true);
+            return;
+        }
+        giftModal.container.classList.remove('hidden');
+    });
+    giftModal.closeBtn.addEventListener('click', () => giftModal.container.classList.add('hidden'));
+
+    giftModal.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const recipientName = giftModal.recipientInput.value.trim();
+        const amountStr = giftModal.amountInput.value.trim();
+        const amount = parseFormattedNumber(amountStr);
+        
+        giftModal.error.textContent = '';
+
+        if (!recipientName || isNaN(amount) || amount <= 0) {
+            giftModal.error.textContent = 'Invalid name or amount.';
+            return;
+        }
+        if (amount > gameState.energy) {
+            giftModal.error.textContent = 'Not enough energy to gift.';
+            return;
+        }
+        if (recipientName === gameState.playerName) {
+            giftModal.error.textContent = "You can't gift yourself!";
+            return;
+        }
+
+        try {
+            const q = query(playersCollection, where("name", "==", recipientName));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                giftModal.error.textContent = 'Player not found.';
+                return;
+            }
+
+            const recipientDoc = snapshot.docs[0];
+            await updateDoc(doc(playersCollection, recipientDoc.id), {
+                energy: increment(amount)
+            });
+            
+            gameState.energy -= amount;
+            await updatePlayerScore();
+
+            showToast(`Successfully gifted ${formatNumber(amount)} energy to ${recipientName}!`);
+            giftModal.container.classList.add('hidden');
+            giftModal.form.reset();
+
+        } catch (error) {
+            console.error("Gifting error:", error);
+            giftModal.error.textContent = "An error occurred. Try again.";
+        }
+    });
 
 
     init();
