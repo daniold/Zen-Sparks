@@ -132,7 +132,7 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
                     <p class="text-sm font-medium text-center">Sparks: <span id="sparkCount">1</span></p>
                     <button id="buySparkBtn" class="zen-button mt-2 w-full bg-emerald-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
@@ -164,12 +164,6 @@
                     </button>
                 </div>
                 <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
-                    <p class="text-sm font-medium text-center">Gift Energy</p>
-                    <button id="giftPlayerBtn" class="zen-button mt-2 w-full bg-teal-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
-                        Gift Player
-                    </button>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-lg flex flex-col items-center justify-between">
                     <p class="text-sm font-medium text-center">Help</p>
                     <button id="instructionsBtn" class="zen-button mt-2 w-full bg-gray-600 text-white font-bold py-2 px-3 rounded-lg text-sm">
                         Instructions
@@ -180,30 +174,6 @@
     </div>
     
     <!-- Modals -->
-    <div id="giftModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
-        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-sm w-full mx-auto shadow-2xl relative">
-             <button id="closeGiftModal" class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Gift Energy</h2>
-            <form id="giftForm">
-                <div class="mb-4">
-                    <label for="recipientName" class="block text-sm font-medium text-slate-300 mb-1">Recipient's Name</label>
-                    <input type="text" id="recipientName" placeholder="Enter exact username..." class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                </div>
-                 <div class="mb-2">
-                    <label for="giftAmount" class="block text-sm font-medium text-slate-300 mb-1">Amount</label>
-                    <input type="text" id="giftAmount" placeholder="e.g., 10k, 2.5m, 1b" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
-                </div>
-                <div class="flex items-center mt-2">
-                    <input id="anonymousCheckbox" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500">
-                    <label for="anonymousCheckbox" class="ml-2 block text-sm text-slate-300">Send Anonymously</label>
-                </div>
-                <p id="giftError" class="text-red-400 text-sm h-4 mt-2"></p>
-                <button type="submit" class="zen-button mt-4 w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">Send Gift</button>
-            </form>
-        </div>
-    </div>
     <div id="dashboardModal" class="modal fixed inset-0 bg-black bg-opacity-80 z-[100] p-4 hidden console-font">
         <div class="w-full h-full bg-slate-900 rounded-lg p-4 flex flex-col relative border border-cyan-500 shadow-2xl">
             <button id="closeDashboardBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
@@ -227,6 +197,7 @@
                             <th class="p-2">Name</th>
                             <th class="p-2 text-right">Energy</th>
                             <th class="p-2 text-right">Rebirths</th>
+                            <th class="p-2 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="playerListBody" class="divide-y divide-slate-700">
@@ -265,6 +236,26 @@
                 <p id="nameError" class="text-red-400 text-sm mt-2 h-4"></p>
                 <button type="submit" class="zen-button mt-4 w-full bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg">Save Name</button>
             </form>
+        </div>
+    </div>
+    <div id="banModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[101] flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-md w-full mx-auto shadow-2xl relative">
+             <h2 class="text-2xl font-bold text-red-400 mb-4">Ban Player: <span id="banModalPlayerName"></span></h2>
+             <form id="banForm">
+                <textarea id="banReasonInput" placeholder="Enter reason for ban..." class="w-full h-24 bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500" required></textarea>
+                <div class="flex justify-end space-x-4 mt-4">
+                     <button type="button" id="cancelBanBtn" class="zen-button bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button type="submit" class="zen-button bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Confirm Ban</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="bannedScreen" class="modal fixed inset-0 bg-black bg-opacity-90 z-[200] flex items-center justify-center hidden">
+        <div class="bg-slate-800 p-8 text-center max-w-lg mx-auto shadow-2xl rounded-lg border-2 border-red-500">
+            <h2 class="text-4xl font-bold text-red-400 mb-4">You Have Been Banned</h2>
+            <p class="mb-2 text-slate-300">Reason:</p>
+            <p id="banReasonDisplay" class="text-lg text-white mb-6 p-4 bg-slate-900 rounded">No reason provided.</p>
+            <p class="text-sm text-slate-500">This ban is permanent and at the discretion of the administrator.</p>
         </div>
     </div>
     <div id="instructionsModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
@@ -311,7 +302,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, limit, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // --- Firebase Configuration ---
     const firebaseConfig = {
@@ -365,11 +356,13 @@
     const nameModal = { container: document.getElementById('nameModal'), form: document.getElementById('nameForm'), input: document.getElementById('nameInput'), error: document.getElementById('nameError'), closeBtn: document.getElementById('closeNameModal') };
     const toast = { container: document.getElementById('toast'), message: document.getElementById('toastMessage') };
     const debugConsole = { container: document.getElementById('debugConsole'), output: document.getElementById('consoleOutput'), form: document.getElementById('consoleForm'), input: document.getElementById('consoleInput') };
-    const giftModal = { container: document.getElementById('giftModal'), openBtn: document.getElementById('giftPlayerBtn'), closeBtn: document.getElementById('closeGiftModal'), form: document.getElementById('giftForm'), recipientInput: document.getElementById('recipientName'), amountInput: document.getElementById('giftAmount'), error: document.getElementById('giftError'), anonCheckbox: document.getElementById('anonymousCheckbox') };
     const dashboardModal = { container: document.getElementById('dashboardModal'), closeBtn: document.getElementById('closeDashboardBtn'), totalPlayers: document.getElementById('totalPlayersStat'), onlinePlayers: document.getElementById('onlinePlayersStat'), playerList: document.getElementById('playerListBody')};
+    const banModal = { container: document.getElementById('banModal'), playerName: document.getElementById('banModalPlayerName'), form: document.getElementById('banForm'), reasonInput: document.getElementById('banReasonInput'), cancelBtn: document.getElementById('cancelBanBtn') };
+    const bannedScreen = { container: document.getElementById('bannedScreen'), reasonDisplay: document.getElementById('banReasonDisplay') };
 
     let gameState;
     let devMode = false;
+    let banTargetPlayerId = null;
     const ASCEND_REQ_BASE = 1e6;
 
     const defaultState = {
@@ -393,16 +386,6 @@
         const i = Math.floor(Math.log10(num) / 3);
         return (num / Math.pow(10, i * 3)).toFixed(2) + suffixes[i];
     };
-
-    const parseFormattedNumber = (str) => {
-        const suffixes = { k: 1e3, m: 1e6, b: 1e9, t: 1e12, q: 1e15, Q: 1e18, s: 1e21, S: 1e24 };
-        const lastChar = str.slice(-1).toLowerCase();
-        if (suffixes[lastChar]) {
-            return parseFloat(str.slice(0, -1)) * suffixes[lastChar];
-        }
-        return parseFloat(str);
-    };
-    
     const random = (min, max) => Math.random() * (max - min) + min;
     
     function showToast(message, isError = false) {
@@ -446,25 +429,47 @@
     
     async function loadPlayerName() {
         if (!userId || !firebaseInitialized) return;
-        const playerDoc = await getDoc(doc(playersCollection, userId));
-        if (playerDoc.exists() && playerDoc.data().name) {
-            gameState.playerName = playerDoc.data().name;
-            updatePlayerNameUI();
+        const playerDocRef = doc(playersCollection, userId);
+        const playerDoc = await getDoc(playerDocRef);
+
+        if (playerDoc.exists()) {
+            const playerData = playerDoc.data();
+            if (playerData.isBanned) {
+                bannedScreen.reasonDisplay.textContent = playerData.banReason || 'No reason provided.';
+                bannedScreen.container.classList.remove('hidden');
+                // Halt game execution for banned player
+                return false; 
+            }
+            if (playerData.name) {
+                 gameState.playerName = playerData.name;
+                 updatePlayerNameUI();
+            }
         }
+        return true; // Game can continue
     }
 
     function listenToLeaderboard() {
         if (!firebaseInitialized) return;
-        const q = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"), limit(5));
+        // Fetch top 50 players and filter out banned players on the client-side to avoid needing a composite index.
+        const q = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"), limit(50));
         onSnapshot(q, (snapshot) => {
+            const unbannedPlayers = [];
+            snapshot.forEach((doc) => {
+                if(doc.data().isBanned !== true) {
+                    unbannedPlayers.push(doc.data());
+                }
+            });
+
+            const top5 = unbannedPlayers.slice(0, 5);
+
             ui.leaderboardList.innerHTML = '';
-            if (snapshot.empty) {
+            if (top5.length === 0) {
                 ui.leaderboardList.innerHTML = `<p class="text-slate-400 text-sm">No players yet. Be the first!</p>`;
                 return;
             }
+
             let rank = 1;
-            snapshot.forEach((doc) => {
-                const player = doc.data();
+            top5.forEach((player) => {
                 const entry = document.createElement('div');
                 entry.className = 'flex justify-between items-center text-sm';
                 entry.innerHTML = `
@@ -505,7 +510,9 @@
         try {
             const q = query(playersCollection, orderBy("ascensionPoints", "desc"), orderBy("energy", "desc"));
             const snapshot = await getDocs(q);
-            const rank = snapshot.docs.findIndex(doc => doc.id === userId);
+           // Filter out banned players from rank calculation client-side
+           const rankedPlayers = snapshot.docs.filter(d => !d.data().isBanned);
+           const rank = rankedPlayers.findIndex(doc => doc.id === userId);
             if (rank !== -1) {
                 ui.playerRankDisplay.textContent = `#${rank + 1}`;
             } else {
@@ -683,11 +690,15 @@
         loadGame();
         await initFirebase();
         
+       // The loadPlayerName function now returns a boolean to halt execution if banned
+       const canPlay = await loadPlayerName();
+       if (!canPlay) return;
+
         resizeCanvas();
         heartCrystal = new HeartCrystal();
         applyTheme(gameState.currentTheme);
-        
-        while(gameState.sparks.length < gameState.upgrades.count.level) {
+
+        while (gameState.sparks.length < gameState.upgrades.count.level) {
             gameState.sparks.push(new Spark(random(0, canvas.width), random(0, canvas.height)));
         }
         
@@ -1029,7 +1040,7 @@
                 debugConsole.output.innerHTML = '';
                 break;
             case 'devmode':
-                if (args[0] === 'asaisfat') {
+                if (args[0] === '1234321') {
                     devMode = true;
                     logToConsole("Dev mode enabled for this session.");
                 } else if (args[0] === 'off') {
@@ -1107,11 +1118,18 @@
             dashboardModal.playerList.innerHTML = '';
             allPlayersSnapshot.forEach(doc => {
                 const player = doc.data();
+                const isBanned = player.isBanned || false;
                 const tr = document.createElement('tr');
+                tr.className = isBanned ? 'text-red-400' : '';
                 tr.innerHTML = `
                     <td class="p-2">${player.name}</td>
                     <td class="p-2 text-right">${formatNumber(player.energy)}</td>
                     <td class="p-2 text-right">${player.ascensionPoints}</td>
+                    <td class="p-2 text-right">
+                        <button data-id="${doc.id}" data-name="${player.name}" class="ban-btn zen-button text-xs py-1 px-2 rounded ${isBanned ? 'bg-emerald-600' : 'bg-red-600'}">
+                            ${isBanned ? 'Unban' : 'Ban'}
+                        </button>
+                    </td>
                 `;
                 dashboardModal.playerList.appendChild(tr);
             });
@@ -1121,65 +1139,60 @@
         }
     }
     dashboardModal.closeBtn.addEventListener('click', () => dashboardModal.container.classList.add('hidden'));
-    
-    giftModal.openBtn.addEventListener('click', () => {
-        if (!firebaseInitialized || !gameState.playerName) {
-            showToast("You must set your name first to gift.", true);
-            return;
-        }
-        giftModal.container.classList.remove('hidden');
-    });
-    giftModal.closeBtn.addEventListener('click', () => giftModal.container.classList.add('hidden'));
 
-    giftModal.form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const recipientName = giftModal.recipientInput.value.trim();
-        const amountStr = giftModal.amountInput.value.trim();
-        const amount = parseFormattedNumber(amountStr);
-        
-        giftModal.error.textContent = '';
+    dashboardModal.playerList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('ban-btn')) {
+            const playerId = e.target.dataset.id;
+            const playerName = e.target.dataset.name;
+            const isCurrentlyBanned = e.target.textContent.trim() === 'Unban';
 
-        if (!recipientName || isNaN(amount) || amount <= 0) {
-            giftModal.error.textContent = 'Invalid name or amount.';
-            return;
-        }
-        if (amount > gameState.energy) {
-            giftModal.error.textContent = 'Not enough energy to gift.';
-            return;
-        }
-        if (recipientName === gameState.playerName) {
-            giftModal.error.textContent = "You can't gift yourself!";
-            return;
-        }
-
-        try {
-            const q = query(playersCollection, where("name", "==", recipientName));
-            const snapshot = await getDocs(q);
-            if (snapshot.empty) {
-                giftModal.error.textContent = 'Player not found.';
-                return;
+            if (isCurrentlyBanned) {
+                unbanPlayer(playerId);
+            } else {
+                banTargetPlayerId = playerId;
+                banModal.playerName.textContent = playerName;
+                banModal.container.classList.remove('hidden');
+                banModal.reasonInput.focus();
             }
-
-            const recipientDoc = snapshot.docs[0];
-            await updateDoc(doc(playersCollection, recipientDoc.id), {
-                energy: increment(amount)
-            });
-            
-            gameState.energy -= amount;
-            await updatePlayerScore();
-
-            showToast(`Successfully gifted ${formatNumber(amount)} energy to ${recipientName}!`);
-            giftModal.container.classList.add('hidden');
-            giftModal.form.reset();
-
-        } catch (error) {
-            console.error("Gifting error:", error);
-            giftModal.error.textContent = "An error occurred. Try again.";
         }
     });
+
+    banModal.cancelBtn.addEventListener('click', () => {
+        banModal.container.classList.add('hidden');
+        banModal.form.reset();
+        banTargetPlayerId = null;
+    });
+
+    banModal.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const reason = banModal.reasonInput.value.trim();
+        if (reason && banTargetPlayerId) {
+            try {
+                await setDoc(doc(playersCollection, banTargetPlayerId), { isBanned: true, banReason: reason }, { merge: true });
+                showToast(`Successfully banned player.`);
+                banModal.cancelBtn.click(); // Close and reset modal
+                openDashboard(); // Refresh dashboard view
+            } catch (error) {
+                console.error("Error banning player:", error);
+                showToast("Failed to ban player.", true);
+            }
+        }
+    });
+
+    async function unbanPlayer(playerId) {
+         try {
+            await setDoc(doc(playersCollection, playerId), { isBanned: false, banReason: "" }, { merge: true });
+            showToast(`Successfully unbanned player.`);
+            openDashboard(); // Refresh dashboard view
+        } catch (error) {
+            console.error("Error unbanning player:", error);
+            showToast("Failed to unban player.", true);
+        }
+    }
 
     init();
 </script>
 </body>
 </html>
+
 
