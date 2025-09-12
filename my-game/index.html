@@ -250,6 +250,30 @@
             </form>
         </div>
     </div>
+    <div id="giveEnergyModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[101] flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-md w-full mx-auto shadow-2xl relative">
+             <h2 class="text-2xl font-bold text-yellow-400 mb-4">Give Energy to <span id="giveEnergyPlayerName"></span></h2>
+             <form id="giveEnergyForm">
+                <input id="giveEnergyAmount" type="text" placeholder="Amount (e.g., 10k, 2.5m, 1b)" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500" required />
+                <div class="flex justify-end space-x-4 mt-4">
+                     <button type="button" id="cancelGiveEnergyBtn" class="zen-button bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button type="submit" class="zen-button bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">Give Energy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="giveApModal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[101] flex items-center justify-center hidden">
+        <div class="bg-slate-800 rounded-lg p-6 text-left max-w-md w-full mx-auto shadow-2xl relative">
+             <h2 class="text-2xl font-bold text-purple-400 mb-4">Give AP to <span id="giveApPlayerName"></span></h2>
+             <form id="giveApForm">
+                <input id="giveApAmount" type="number" placeholder="Amount (e.g., 100)" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500" required />
+                <div class="flex justify-end space-x-4 mt-4">
+                     <button type="button" id="cancelGiveApBtn" class="zen-button bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button type="submit" class="zen-button bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">Give AP</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="bannedScreen" class="modal fixed inset-0 bg-black bg-opacity-90 z-[200] flex items-center justify-center hidden">
         <div class="bg-slate-800 p-8 text-center max-w-lg mx-auto shadow-2xl rounded-lg border-2 border-red-500">
             <h2 class="text-4xl font-bold text-red-400 mb-4">You Have Been Banned</h2>
@@ -318,7 +342,7 @@
 
     // --- ADMIN CONFIGURATION ---
     // IMPORTANT: Add your Firebase User ID (UID) here to grant admin rights.
-    const ADMIN_UIDS = ["Dxa7G8HDLtPKsNWmhZ5aPzocR9y1"]; 
+    const ADMIN_UIDS = ["REPLACE_WITH_YOUR_ADMIN_UID"]; 
     // You can find your current user ID by typing 'userId' in the in-game debug console.
 
     const canvas = document.getElementById('gameCanvas');
@@ -364,10 +388,13 @@
     const dashboardModal = { container: document.getElementById('dashboardModal'), closeBtn: document.getElementById('closeDashboardBtn'), totalPlayers: document.getElementById('totalPlayersStat'), onlinePlayers: document.getElementById('onlinePlayersStat'), playerList: document.getElementById('playerListBody')};
     const banModal = { container: document.getElementById('banModal'), playerName: document.getElementById('banModalPlayerName'), form: document.getElementById('banForm'), reasonInput: document.getElementById('banReasonInput'), cancelBtn: document.getElementById('cancelBanBtn') };
     const bannedScreen = { container: document.getElementById('bannedScreen'), reasonDisplay: document.getElementById('banReasonDisplay') };
+    const giveEnergyModal = { container: document.getElementById('giveEnergyModal'), playerName: document.getElementById('giveEnergyPlayerName'), form: document.getElementById('giveEnergyForm'), amountInput: document.getElementById('giveEnergyAmount'), cancelBtn: document.getElementById('cancelGiveEnergyBtn') };
+    const giveApModal = { container: document.getElementById('giveApModal'), playerName: document.getElementById('giveApPlayerName'), form: document.getElementById('giveApForm'), amountInput: document.getElementById('giveApAmount'), cancelBtn: document.getElementById('cancelGiveApBtn') };
+
 
     let gameState;
     let devMode = false;
-    let banTargetPlayerId = null;
+    let targetPlayerId = null;
     const ASCEND_REQ_BASE = 1e6;
 
     const defaultState = {
@@ -1037,9 +1064,11 @@
                 logToConsole("- devmode [code]: Enables developer commands");
                 logToConsole("- userId: Shows your current user ID");
                 if (devMode) {
-                    logToConsole("- energy [amount]: Sets energy (e.g., 10k, 2.5m, 1b)");
-                    logToConsole("- ap [amount]: Sets ascension points");
+                    logToConsole("- energy [amount]: Sets your energy (e.g., 10k, 2.5m, 1b)");
+                    logToConsole("- ap [amount]: Sets your ascension points");
                     logToConsole("- dashboard: Opens the dev dashboard");
+                    logToConsole("- giveenergy [name] [amount]: Gives energy to a player");
+                    logToConsole("- giveap [name] [amount]: Gives AP to a player");
                 }
                 break;
             case 'clear':
@@ -1102,9 +1131,66 @@
             case 'userid':
                 logToConsole(`Your User ID is: ${userId}`);
                 break;
+            case 'giveenergy':
+                 if (!devMode) {
+                    logToConsole("Error: Dev mode not enabled.", true);
+                    return;
+                }
+                const energyPlayerName = args[0];
+                const energyAmountStr = args[1];
+                if (!energyPlayerName || !energyAmountStr) {
+                    logToConsole("Usage: giveenergy [player_name] [amount]", true);
+                    return;
+                }
+                const energyAmount = parseAmountString(energyAmountStr);
+                giveResourceByName(energyPlayerName, 'energy', energyAmount);
+                break;
+            case 'giveap':
+                 if (!devMode) {
+                    logToConsole("Error: Dev mode not enabled.", true);
+                    return;
+                }
+                const apPlayerName = args[0];
+                const apAmountGive = parseInt(args[1]);
+                 if (!apPlayerName || isNaN(apAmountGive)) {
+                    logToConsole("Usage: giveap [player_name] [amount]", true);
+                    return;
+                }
+                giveResourceByName(apPlayerName, 'ascensionPoints', apAmountGive);
+                break;
             default:
                 logToConsole(`Unknown command: ${cmd}`, true);
         }
+    }
+
+    async function giveResourceByName(playerName, resourceType, amount) {
+        try {
+            const q = query(playersCollection, where("name", "==", playerName));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                logToConsole(`Player "${playerName}" not found.`, true);
+                return;
+            }
+            const playerDoc = querySnapshot.docs[0];
+            const currentAmount = playerDoc.data()[resourceType] || 0;
+            const newAmount = currentAmount + amount;
+            
+            await setDoc(doc(playersCollection, playerDoc.id), { [resourceType]: newAmount }, { merge: true });
+            logToConsole(`Gave ${formatNumber(amount)} ${resourceType} to ${playerName}. New total: ${formatNumber(newAmount)}`);
+        } catch (error) {
+            logToConsole(`Failed to give ${resourceType}: ${error.message}`, true);
+        }
+    }
+
+    function parseAmountString(amountStr) {
+        if (!amountStr) return 0;
+        let multiplier = 1;
+        let numPart = amountStr;
+        if (amountStr.endsWith('k')) { multiplier = 1e3; numPart = amountStr.slice(0, -1); }
+        if (amountStr.endsWith('m')) { multiplier = 1e6; numPart = amountStr.slice(0, -1); }
+        if (amountStr.endsWith('b')) { multiplier = 1e9; numPart = amountStr.slice(0, -1); }
+        let num = parseFloat(numPart);
+        return isNaN(num) ? 0 : num * multiplier;
     }
 
     async function openDashboard() {
@@ -1136,9 +1222,13 @@
                     <td class="p-2 text-right">${formatNumber(player.energy)}</td>
                     <td class="p-2 text-right">${player.ascensionPoints}</td>
                     <td class="p-2 text-right">
-                        <button data-id="${doc.id}" data-name="${player.name}" class="ban-btn zen-button text-xs py-1 px-2 rounded ${isBanned ? 'bg-emerald-600' : 'bg-red-600'}">
-                            ${isBanned ? 'Unban' : 'Ban'}
-                        </button>
+                        <div class="flex justify-end items-center space-x-2">
+                             <button data-id="${doc.id}" data-name="${player.name}" class="give-energy-btn zen-button text-xs py-1 px-2 rounded bg-yellow-500 hover:bg-yellow-400">E</button>
+                             <button data-id="${doc.id}" data-name="${player.name}" class="give-ap-btn zen-button text-xs py-1 px-2 rounded bg-purple-500 hover:bg-purple-400">AP</button>
+                            <button data-id="${doc.id}" data-name="${player.name}" class="ban-btn zen-button text-xs py-1 px-2 rounded ${isBanned ? 'bg-emerald-600' : 'bg-red-600'}">
+                                ${isBanned ? 'Unban' : 'Ban'}
+                            </button>
+                        </div>
                     </td>
                 `;
                 dashboardModal.playerList.appendChild(tr);
@@ -1159,18 +1249,30 @@
             if (isCurrentlyBanned) {
                 unbanPlayer(playerId);
             } else {
-                banTargetPlayerId = playerId;
+                targetPlayerId = playerId;
                 banModal.playerName.textContent = playerName;
                 banModal.container.classList.remove('hidden');
                 banModal.reasonInput.focus();
             }
+        }
+        else if (e.target.classList.contains('give-energy-btn')) {
+            targetPlayerId = e.target.dataset.id;
+            giveEnergyModal.playerName.textContent = e.target.dataset.name;
+            giveEnergyModal.container.classList.remove('hidden');
+            giveEnergyModal.amountInput.focus();
+        }
+        else if (e.target.classList.contains('give-ap-btn')) {
+            targetPlayerId = e.target.dataset.id;
+            giveApModal.playerName.textContent = e.target.dataset.name;
+            giveApModal.container.classList.remove('hidden');
+            giveApModal.amountInput.focus();
         }
     });
 
     banModal.cancelBtn.addEventListener('click', () => {
         banModal.container.classList.add('hidden');
         banModal.form.reset();
-        banTargetPlayerId = null;
+        targetPlayerId = null;
     });
 
     banModal.form.addEventListener('submit', async (e) => {
@@ -1181,9 +1283,9 @@
             return;
         }
         const reason = banModal.reasonInput.value.trim();
-        if (reason && banTargetPlayerId) {
+        if (reason && targetPlayerId) {
             try {
-                await setDoc(doc(playersCollection, banTargetPlayerId), { isBanned: true, banReason: reason }, { merge: true });
+                await setDoc(doc(playersCollection, targetPlayerId), { isBanned: true, banReason: reason }, { merge: true });
                 showToast(`Successfully banned player.`);
                 banModal.cancelBtn.click(); // Close and reset modal
                 openDashboard(); // Refresh dashboard view
@@ -1211,6 +1313,67 @@
             logToConsole(`Firebase unban error: ${error.message}`, true);
         }
     }
+
+    giveEnergyModal.cancelBtn.addEventListener('click', () => {
+        giveEnergyModal.container.classList.add('hidden');
+        giveEnergyModal.form.reset();
+        targetPlayerId = null;
+    });
+
+    giveEnergyModal.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!devMode) { return; }
+        const amountStr = giveEnergyModal.amountInput.value;
+        const amount = parseAmountString(amountStr);
+
+        if (amount > 0 && targetPlayerId) {
+            try {
+                const playerDocRef = doc(playersCollection, targetPlayerId);
+                const playerDoc = await getDoc(playerDocRef);
+                const currentEnergy = playerDoc.data().energy || 0;
+                const newEnergy = currentEnergy + amount;
+                await setDoc(playerDocRef, { energy: newEnergy }, { merge: true });
+
+                showToast(`Gave ${formatNumber(amount)} energy.`);
+                giveEnergyModal.cancelBtn.click();
+                openDashboard();
+            } catch (error) {
+                console.error("Error giving energy:", error);
+                showToast("Failed to give energy. Check console.", true);
+                logToConsole(`Firebase give energy error: ${error.message}`, true);
+            }
+        }
+    });
+
+    giveApModal.cancelBtn.addEventListener('click', () => {
+        giveApModal.container.classList.add('hidden');
+        giveApModal.form.reset();
+        targetPlayerId = null;
+    });
+
+    giveApModal.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!devMode) { return; }
+        const amount = parseInt(giveApModal.amountInput.value);
+
+        if (amount > 0 && targetPlayerId) {
+            try {
+                const playerDocRef = doc(playersCollection, targetPlayerId);
+                const playerDoc = await getDoc(playerDocRef);
+                const currentAp = playerDoc.data().ascensionPoints || 0;
+                const newAp = currentAp + amount;
+                await setDoc(playerDocRef, { ascensionPoints: newAp }, { merge: true });
+
+                showToast(`Gave ${formatNumber(amount)} AP.`);
+                giveApModal.cancelBtn.click();
+                openDashboard();
+            } catch (error) {
+                console.error("Error giving AP:", error);
+                showToast("Failed to give AP. Check console.", true);
+                logToConsole(`Firebase give AP error: ${error.message}`, true);
+            }
+        }
+    });
 
     init();
 </script>
