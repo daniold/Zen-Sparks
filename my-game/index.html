@@ -1046,10 +1046,10 @@
                 debugConsole.output.innerHTML = '';
                 break;
             case 'devmode':
-                if (args[0] === 'asaisfat' && ADMIN_UIDS.includes(userId)) {
+                if (args[0] === '1234321' && ADMIN_UIDS.includes(userId)) {
                     devMode = true;
                     logToConsole("Admin dev mode enabled for this session.");
-                } else if (args[0] === 'asaisfat') {
+                } else if (args[0] === '1234321') {
                     logToConsole("Invalid dev code or you are not an admin.", true);
                 } else if (args[0] === 'off') {
                     devMode = false;
@@ -1216,4 +1216,5 @@
 </script>
 </body>
 </html>
+
 
