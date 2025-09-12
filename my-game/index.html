@@ -448,7 +448,28 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    await loadPlayerName();
+                    // This new listener handles initial load AND real-time updates.
+                    const playerDocRef = doc(playersCollection, userId);
+                    onSnapshot(playerDocRef, (doc) => {
+                        if (doc.exists()) {
+                            const playerData = doc.data();
+                            // Check for ban status on every update
+                            if (playerData.isBanned) {
+                                bannedScreen.reasonDisplay.textContent = playerData.banReason || 'No reason provided.';
+                                bannedScreen.container.classList.remove('hidden');
+                                return; // Stop further processing
+                            }
+
+                            // Update local game state from the database
+                            if (playerData.name) gameState.playerName = playerData.name;
+                            if (playerData.energy !== undefined) gameState.energy = playerData.energy;
+                            if (playerData.ascensionPoints !== undefined) gameState.ascensionPoints = playerData.ascensionPoints;
+                            
+                            updatePlayerNameUI();
+                            updateUI();
+                        }
+                    });
+
                     listenToLeaderboard();
                     updatePlayerRank();
                 }
@@ -460,7 +481,9 @@
     }
     
     async function loadPlayerName() {
-        if (!userId || !firebaseInitialized) return;
+        // This function is now handled by the real-time listener above,
+        // but we'll keep it to ensure the game can start if there's a slight delay.
+        if (!userId || !firebaseInitialized) return true;
         const playerDocRef = doc(playersCollection, userId);
         const playerDoc = await getDoc(playerDocRef);
 
@@ -469,12 +492,7 @@
             if (playerData.isBanned) {
                 bannedScreen.reasonDisplay.textContent = playerData.banReason || 'No reason provided.';
                 bannedScreen.container.classList.remove('hidden');
-                // Halt game execution for banned player
                 return false; 
-            }
-            if (playerData.name) {
-                 gameState.playerName = playerData.name;
-                 updatePlayerNameUI();
             }
         }
         return true; // Game can continue
@@ -1341,6 +1359,7 @@
                 console.error("Error giving energy:", error);
                 showToast("Failed to give energy. Check console.", true);
                 logToConsole(`Firebase give energy error: ${error.message}`, true);
+                giveEnergyModal.cancelBtn.click();
             }
         }
     });
@@ -1371,6 +1390,7 @@
                 console.error("Error giving AP:", error);
                 showToast("Failed to give AP. Check console.", true);
                 logToConsole(`Firebase give AP error: ${error.message}`, true);
+                giveApModal.cancelBtn.click();
             }
         }
     });
