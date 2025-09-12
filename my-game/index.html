@@ -316,6 +316,11 @@
     };
     // --- End of Firebase Configuration ---
 
+    // --- ADMIN CONFIGURATION ---
+    // IMPORTANT: Add your Firebase User ID (UID) here to grant admin rights.
+    const ADMIN_UIDS = ["REPLACE_WITH_YOUR_ADMIN_UID"]; 
+    // You can find your current user ID by typing 'userId' in the in-game debug console.
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const particleContainer = document.getElementById('particleContainer');
@@ -1030,6 +1035,7 @@
                 logToConsole("- help: Shows this list");
                 logToConsole("- clear: Clears the console");
                 logToConsole("- devmode [code]: Enables developer commands");
+                logToConsole("- userId: Shows your current user ID");
                 if (devMode) {
                     logToConsole("- energy [amount]: Sets energy (e.g., 10k, 2.5m, 1b)");
                     logToConsole("- ap [amount]: Sets ascension points");
@@ -1040,26 +1046,27 @@
                 debugConsole.output.innerHTML = '';
                 break;
             case 'devmode':
-                if (args[0] === '1234321') {
+                if (args[0] === 'asaisfat' && ADMIN_UIDS.includes(userId)) {
                     devMode = true;
-                    logToConsole("Dev mode enabled for this session.");
+                    logToConsole("Admin dev mode enabled for this session.");
+                } else if (args[0] === 'asaisfat') {
+                    logToConsole("Invalid dev code or you are not an admin.", true);
                 } else if (args[0] === 'off') {
                     devMode = false;
                     logToConsole("Dev mode disabled.");
-                }
-                else {
+                } else {
                     logToConsole("Invalid devmode command.", true);
                 }
                 break;
             case 'energy':
                 if (!devMode) {
                     logToConsole("Error: Dev mode not enabled.", true);
-                    break;
+                    return;
                 }
                 const amountStr = args[0];
                 if (!amountStr) {
                     logToConsole("Usage: energy [amount]", true);
-                    break;
+                    return;
                 }
                 let multiplier = 1;
                 let num = parseFloat(amountStr);
@@ -1074,12 +1081,12 @@
             case 'ap':
                  if (!devMode) {
                     logToConsole("Error: Dev mode not enabled.", true);
-                    break;
+                    return;
                 }
                 const apAmount = parseInt(args[0]);
                 if (isNaN(apAmount)) {
                      logToConsole("Usage: ap [number]", true);
-                     break;
+                     return;
                 }
                 gameState.ascensionPoints = apAmount;
                 logToConsole(`Ascension points set to ${apAmount}`);
@@ -1088,9 +1095,12 @@
             case 'dashboard':
                 if (!devMode) {
                     logToConsole("Error: Dev mode not enabled.", true);
-                    break;
+                    return;
                 }
                 openDashboard();
+                break;
+            case 'userid':
+                logToConsole(`Your User ID is: ${userId}`);
                 break;
             default:
                 logToConsole(`Unknown command: ${cmd}`, true);
@@ -1165,6 +1175,11 @@
 
     banModal.form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!devMode) {
+            showToast("You must be in dev mode to ban players.", true);
+            logToConsole("Error: Attempted to ban player without dev mode.", true);
+            return;
+        }
         const reason = banModal.reasonInput.value.trim();
         if (reason && banTargetPlayerId) {
             try {
@@ -1174,19 +1189,26 @@
                 openDashboard(); // Refresh dashboard view
             } catch (error) {
                 console.error("Error banning player:", error);
-                showToast("Failed to ban player.", true);
+                showToast("Failed to ban player. Check console for details.", true);
+                logToConsole(`Firebase ban error: ${error.message}`, true);
             }
         }
     });
 
     async function unbanPlayer(playerId) {
+        if (!devMode) {
+            showToast("You must be in dev mode to unban players.", true);
+            logToConsole("Error: Attempted to unban player without dev mode.", true);
+            return;
+        }
          try {
             await setDoc(doc(playersCollection, playerId), { isBanned: false, banReason: "" }, { merge: true });
             showToast(`Successfully unbanned player.`);
             openDashboard(); // Refresh dashboard view
         } catch (error) {
             console.error("Error unbanning player:", error);
-            showToast("Failed to unban player.", true);
+            showToast("Failed to unban player. Check console for details.", true);
+            logToConsole(`Firebase unban error: ${error.message}`, true);
         }
     }
 
@@ -1194,5 +1216,4 @@
 </script>
 </body>
 </html>
-
 
