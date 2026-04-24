@@ -34,9 +34,6 @@ Switch between visual styles to match your mood:
 - 🎃 **Spooky Halloween** — Pumpkin crystal chaos
 - ❄️ **Winter Holiday** — Frosty snowflake crystal
 
-### 🛡️ Admin Dashboard
-A built-in developer console for managing players, monitoring live stats, granting resources, and banning malicious users.
-
 ---
 
 ## 🎮 How to Play
